@@ -1,0 +1,266 @@
+==========================================================
+#Title: "Flight Delay Analysis using R"
+#Author: "Aishwarya Mohan Chaudhari"
+#Dataset: flights dataset
+==========================================================
+
+#Loading required packages
+install.packages('nycflights13')
+install.packages('tidyverse')
+library(nycflights13)
+library(tidyverse)
+
+#Loading dataset of interest
+data(flights)
+
+#Exploring the dataset
+head(flights,10) # First 10 rows of the data
+summary(flights) # 6 point summary of all columns
+str(flights) # datatypes of all variables
+dim(flights) #dimension: number of rows and columns
+
+----------------------------------------------------------
+
+#Part 1: Understanding the Data
+
+colnames(flights)# all column headers in the dataset
+
+flights[,c("dep_delay", "arr_delay", "dep_time", "arr_time", "air_time", "distance", "flight", "carrier", "origin", "time_hour" )] #visualizing specific columns only
+
+
+str(flights) #datatypes of all variables
+sum(is.na(flights)) #sum of all null values in the dataset
+colSums(is.na(flights))# sum of null values by column
+
+-----------------------------------------------------------
+
+#Part 2: Numerical Summaries of Delays
+
+
+#For dep_delay variable
+mean(flights$dep_delay, na.rm = TRUE)
+median(flights$dep_delay, na.rm = TRUE)
+sd(flights$dep_delay, na.rm = TRUE)
+IQR(flights$dep_delay, na.rm = TRUE)
+
+#For arr_delay variable
+mean(flights$arr_delay, na.rm = TRUE)
+median(flights$arr_delay, na.rm = TRUE)
+sd(flights$arr_delay, na.rm = TRUE)
+IQR(flights$arr_delay, na.rm = TRUE)
+
+
+#Delay summary across carrier
+library(dplyr)
+flights %>% #grouping departure delay and arrival delay by carrier
+group_by (carrier) %>%
+summarise(avg_dep_delay = mean(dep_delay, na.rm = TRUE), avg_arr_delay = mean(dep_delay, na.rm = TRUE))
+
+#Delay summary across origin
+flights %>% #grouping departure delay and arrival delay by origin
+group_by (origin) %>%
+summarise(avg_dep_delay = mean(dep_delay, na.rm = TRUE), avg_arr_delay = mean(arr_delay, na.rm = TRUE))
+
+
+#Delay summary across Time(Monthly)
+flights %>%  #grouping departure delay and arrival delay by month
+group_by (month) %>%
+summarise(avg_dep_delay = mean(dep_delay, na.rm = TRUE), avg_arr_delay = mean(arr_delay, na.rm = TRUE))
+
+
+#skewness plot for departure delays
+
+install.packages("ggplot2")
+library(ggplot2)
+
+mean_delay = mean(flights$dep_delay, na.rm = TRUE)
+median_delay = median(flights$dep_delay, na.rm = TRUE)
+
+ggplot(flights,aes(dep_delay)) +
+  geom_histogram(bins = 50, fill = "grey", col = "black") +
+  ggtitle("Histogram of Departure delay variable showing skewness") +
+  coord_cartesian(xlim = c(-50, 200)) +
+  geom_vline(aes(xintercept = mean_delay, colour = "Mean"), linetype = "dashed", size = 1) +
+  geom_vline(aes(xintercept = median_delay, colour = "Median"), linetype = "dashed", size = 1) +
+  scale_color_manual(name = "Central Tendency", values = c("Mean" = "blue", "Median" = "red"))
+  
+#mean median difference
+mean(flights$dep_delay, na.rm = TRUE) - median(flights$dep_delay, na.rm = TRUE)
+  
+#skewness plot for arrival delays
+
+mean_arrival = mean(flights$arr_delay, na.rm = TRUE)
+median_arrival = median(flights$arr_delay, na.rm = TRUE)
+
+ggplot(flights, aes(arr_delay)) +
+  geom_histogram(bins = 50, fill = "grey", col = "black") +
+  ggtitle("Histogram of Arrival delay variable showing skewness") +
+  coord_cartesian(xlim = c(-50, 200)) +
+  geom_vline(aes(xintercept = mean_delay, colour = "Mean"), linetype = "dashed", size = 1) +
+  geom_vline(aes(xintercept = median_delay, colour = "Median"), linetype = "dashed", sized = 1) +
+  scale_color_manual(name = "Central Tendency", values = c("Mean" = "blue", "Median" = "red"))
+
+#mean median difference
+mean(flights$arr_delay, na.rm = TRUE) - median(flights$arr_delay, na.rm = TRUE)
+
+#Outliers of Departure delay variable
+Q1 = quantile(flights$dep_delay, probs = 0.25, na.rm = TRUE) # will give 25th percentile of departure delay value
+Q3 = quantile(flights$dep_delay, probs = 0.75, na.rm  = TRUE) # will give 75th percentile of departure delay value
+IQR = IQR(flights$dep_delay, na.rm = TRUE) #calculating Interquartile range
+Q1
+Q3
+IQR
+Lower_value = Q1 - 1.5*IQR # lower threshold value 
+Higher_value = Q3 + 1.5*IQR # higher threshold value
+Lower_value
+Higher_value
+
+outliers_lower = flights$dep_delay[flights$dep_delay < Lower_value] # All values less than lower threshold value
+outlier_upper = flights$dep_delay[flights$dep_delay > Higher_value] # All values greater than higher threshold value
+outliers_lower
+outliers_upper
+
+sum(flights$dep_delay < Lower_value, na.rm = TRUE) #sum of lower outliers
+sum(flights$dep_delay > Higher_value, na.rm = TRUE) #sum of higher outliers
+
+#Outliers of Arrival delay variable
+Q1 = quantile(flights$arr_delay, probs = 0.25, na.rm = TRUE) # will give 25th percentile of arrival delay value
+Q3 = quantile(flights$arr_delay, probs = 0.75, na.rm  = TRUE) # will give 75th percentile of arrival delay value
+IQR = IQR(flights$arr_delay, na.rm = TRUE) #calculating Interquartile range
+Q1
+Q3
+IQR
+Lower_value = Q1 - 1.5*IQR #lower threshold value 
+Higher_value = Q3 + 1.5*IQR # higher threshold value
+Lower_value
+Higher_value
+
+outliers_lower = flights$arr_delay[flights$arr_delay < Lower_value] # All values less than lower threshold value
+outlier_upper = flights$arr_delay[flights$arr_delay > Higher_value] # All values greater than higher threshold value
+outliers_lower
+outliers_upper
+
+sum(flights$arr_delay < Lower_value, na.rm = TRUE) #sum of lower outliers
+sum(flights$arr_delay > Higher_value, na.rm = TRUE) #sum of higher outliers
+
+--------------------------------------------------------
+
+#Part 3: Graphical Analysis
+
+
+#histogram of Departure delay
+ggplot(flights, aes(dep_delay)) + geom_histogram(bins = 50) + ggtitle("Histogram of Departure delays") + coord_cartesian(xlim = c(-50,200))
+
+#histogram of Arrival delay
+ggplot(flights,aes(arr_delay)) + geom_histogram(bins = 50) + ggtitle("Histogram of Arrival delays") + coord_cartesian(xlim = c(-50,200))
+
+
+
+#Departure delay vs Airlines
+ggplot(flights,aes(x = factor(carrier),y = dep_delay)) + 
+  geom_boxplot(fill = "white", color = "black") +
+  coord_cartesian(ylim = c(-50,50))
+  labs(title = "Box plot of departure delay vs Airlines", x = "Airlines", y = "Departure delay")
+  
+#Arrival delay vs Airlines
+ggplot(flights,aes(x = factor(carrier), y = arr_delay)) +
+  geom_boxplot(fill = "white", color = "black") +
+  coord_cartesian(ylim = c(-50, 100))
+  labs(title = "Box plot of arrival delay as Airlines", x = "Airlines", y = "Arrival delay")
+
+
+#Time-based visualization (Monthly)
+
+library(dplyr)
+
+monthly_delay <- flights %>%
+   group_by(month) %>%
+   summarise(avg_dep_delay = mean(dep_delay, na.rm = TRUE),           
+   avg_arr_delay = mean(arr_delay, na.rm = TRUE))
+   
+ggplot(monthly_delay,aes(x = month)) +
+  geom_line(aes(y = avg_dep_delay, color = "Departure Delay")) +
+  geom_line(aes(y = avg_arr_delay, color = "Arrival Delay")) +
+  labs(title = "Monthly Trend of Flight Delays", x = "Month", y = "Average Delay (minutes)", color = "Delay Type")
+
+
+#Visualization of choice: Boxplot by Month
+
+#Departure Delay vs Month
+ggplot(flights, aes(x = factor(month), y = dep_delay)) +
+   geom_boxplot() +
+   coord_cartesian(ylim = c(-50, 100))
+   labs(title = "Monthly Distribution of Departure delays", x = "Month", y = "Departure Delay")
+  
+#Arrival Delay vs Month
+ggplot(flights, aes(x = factor(month), y = arr_delay)) +
+   geom_boxplot() +
+   coord_cartesian(ylim = c(-50, 100))
+   labs(title = "Monthly Distribution of Arrival delays", x = "Month", y = "Arrival Delay")
+
+
+#Misleading Visualization
+
+#For Departure delay (Skewness) 
+
+mean_delay = mean(flights$dep_delay, na.rm = TRUE)
+median_delay = median(flights$dep_delay, na.rm = TRUE)
+
+ggplot(flights,aes(dep_delay)) +
+  geom_histogram(bins = 5, fill = "grey", col = "black") +
+  ggtitle("Histogram of Departure delay variable showing skewness") +
+  geom_vline(aes(xintercept = mean_delay, colour = "Mean"), linetype = "dashed", size = 1) +
+  geom_vline(aes(xintercept = median_delay, colour = "Median"), linetype = "dashed", size = 1) +
+  scale_color_manual(name = "Central Tendency", values = c("Mean" = "blue", "Median" = "red"))
+
+  
+#For Arrival delay (Skewness) 
+
+mean_arrival = mean(flights$arr_delay, na.rm = TRUE)
+median_arrival = median(flights$arr_delay, na.rm = TRUE)
+
+ggplot(flights, aes(arr_delay)) +
+  geom_histogram(bins = 5, fill = "grey", col = "black") +
+  ggtitle("Histogram of Arrival delay variable showing skewness") +
+  geom_vline(aes(xintercept = mean_delay, colour = "Mean"), linetype = "dashed", size = 1) +
+  geom_vline(aes(xintercept = median_delay, colour = "Median"), linetype = "dashed", sized = 1) +
+  scale_color_manual(name = "Central Tendency", values = c("Mean" = "blue", "Median" = "red"))
+  
+-----------------------------------------------------------
+
+#Part 4: Distribution and Standardization
+
+
+#z scores of Departure delays
+mean_delay <- mean(flights$dep_delay, na.rm = TRUE)
+sd_delay <- sd(flights$dep_delay, na.rm = TRUE)
+
+Z_score_dep_delay <- (flights$dep_delay - mean_delay) / sd_delay
+Z_score_dep_delay
+
+#z scores of Arrival delays
+mean_delay <- mean(flights$arr_delay, na.rm = TRUE)
+sd_delay <- sd(flights$arr_delay, na.rm = TRUE)
+
+Z_score_arr_delay <- (flights$arr_delay - mean_delay) / sd_delay
+Z_score_arr_delay
+
+#For Departure delay
+Mean = mean(flights$dep_delay, na.rm = TRUE)
+Standard_deviation = sd(flights$dep_delay, na.rm = TRUE)
+
+Threshold_dep_delay = Mean + 2*Standard_deviation
+Threshold_dep_delay
+
+sum(flights$dep_delay > Threshold_dep_delay, na.rm = TRUE)
+
+#For Arrival delay
+Mean = mean(flights$arr_delay, na.rm = TRUE)
+Standard_deviation = sd(flights$arr_delay, na.rm = TRUE)
+
+Threshold_arr_delay = Mean + 2*Standard_deviation
+Threshold_arr_delay
+
+sum(flights$arr_delay > Threshold_arr_delay, na.rm = TRUE)
+
+----------------------------------------------------------------
